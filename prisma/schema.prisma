@@ -1,0 +1,238 @@
+// Prisma schema — Sistema de Recordatorios de Vacunación (UNIVERZOO)
+// Dev datasource: SQLite (zero setup). Swap provider/url to "postgresql" for production.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  ADMIN
+  VETERINARIO
+  RECEPCION
+}
+
+enum Sexo {
+  MACHO
+  HEMBRA
+}
+
+enum EtapaRecordatorio {
+  DIAS_30
+  DIAS_7
+  DIA_1
+  DIA_0
+  VENCIDA_7
+}
+
+enum EstadoMensaje {
+  PENDIENTE
+  ENVIADO
+  ENTREGADO
+  LEIDO
+  ERROR
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(RECEPCION)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  vaccinationsRegistered Vaccination[] @relation("VaccinationRegisteredBy")
+  auditLogs              AuditLog[]
+
+  @@map("users")
+}
+
+model Species {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  active Boolean @default(true)
+
+  pets        Pet[]
+  vaccineTypes VaccineType[]
+
+  @@map("species")
+}
+
+model Owner {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  phone     String?
+  whatsapp  String
+  email     String?
+  address   String?
+  city      String?
+  notes     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pets     Pet[]
+  messages Message[]
+
+  @@map("owners")
+}
+
+model Pet {
+  id         String    @id @default(cuid())
+  ownerId    String
+  name       String
+  speciesId  String?
+  breed      String?
+  sex        Sexo?
+  birthDate  DateTime?
+  color      String?
+  weight     Float?
+  fileNumber String?
+  microchip  String?
+  photoUrl   String?
+  notes      String?
+  active     Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  owner        Owner         @relation(fields: [ownerId], references: [id])
+  species      Species?      @relation(fields: [speciesId], references: [id])
+  vaccinations Vaccination[]
+  messages     Message[]
+
+  @@index([ownerId])
+  @@map("pets")
+}
+
+model VaccineType {
+  id          String  @id @default(cuid())
+  name        String
+  speciesId   String?
+  description String?
+  active      Boolean @default(true)
+
+  species      Species?      @relation(fields: [speciesId], references: [id])
+  vaccinations Vaccination[]
+
+  @@map("vaccines")
+}
+
+model Vaccination {
+  id             String    @id @default(cuid())
+  petId          String
+  vaccineTypeId  String
+  commercialName String?
+  appliedDate    DateTime
+  nextDate       DateTime
+  batchNumber    String?
+  veterinarian   String?
+  notes          String?
+  cancelled      Boolean   @default(false)
+  cancelledAt    DateTime?
+  createdAt      DateTime  @default(now())
+  createdByUserId String?
+
+  pet         Pet          @relation(fields: [petId], references: [id])
+  vaccineType VaccineType  @relation(fields: [vaccineTypeId], references: [id])
+  createdBy   User?        @relation("VaccinationRegisteredBy", fields: [createdByUserId], references: [id])
+  messages    Message[]
+
+  @@index([petId])
+  @@index([nextDate])
+  @@map("vaccinations")
+}
+
+model MessageTemplate {
+  id                  String            @id @default(cuid())
+  stage               EtapaRecordatorio @unique
+  name                String
+  content             String
+  whatsappTemplateName String
+  active              Boolean           @default(true)
+  updatedAt           DateTime          @updatedAt
+
+  messages Message[]
+
+  @@map("message_templates")
+}
+
+model Message {
+  id             String            @id @default(cuid())
+  ownerId        String
+  petId          String
+  vaccinationId  String
+  stage          EtapaRecordatorio
+  templateId     String?
+  renderedContent String?
+  whatsappNumber String
+  sentAt         DateTime?
+  status         EstadoMensaje     @default(PENDIENTE)
+  externalId     String?
+  error          String?
+  response       String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  owner       Owner            @relation(fields: [ownerId], references: [id])
+  pet         Pet              @relation(fields: [petId], references: [id])
+  vaccination Vaccination      @relation(fields: [vaccinationId], references: [id])
+  template    MessageTemplate? @relation(fields: [templateId], references: [id])
+
+  @@unique([vaccinationId, stage])
+  @@map("messages")
+}
+
+model ClinicSettings {
+  id       String  @id @default(cuid())
+  name     String  @default("UNIVERZOO Clínica Veterinaria")
+  logoUrl  String?
+  phone    String?
+  whatsapp String?
+  address  String?
+  email    String?
+
+  @@map("clinic_settings")
+}
+
+model ReminderSettings {
+  id           String @id @default(cuid())
+  daysBefore1  Int    @default(30)
+  daysBefore2  Int    @default(7)
+  daysBefore3  Int    @default(1)
+  dayOf        Int    @default(0)
+  daysAfter    Int    @default(7)
+  retryOnError Boolean @default(true)
+
+  @@map("reminder_settings")
+}
+
+model WhatsappEvent {
+  id         String   @id @default(cuid())
+  payload    String
+  receivedAt DateTime @default(now())
+  processed  Boolean  @default(false)
+
+  @@map("whatsapp_events")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}

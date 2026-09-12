@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  --background: #faf7f4;
+  --foreground: #362c27;
+
+  --brand-orange: #f78620;
+  --brand-orange-dark: #d5700e;
+  --brand-orange-light: #fdecd9;
+  --brand-brown: #4d403a;
+  --brand-brown-soft: #6b5c54;
+  --brand-border: #e8ded5;
+  --brand-surface: #ffffff;
+
+  --status-al-dia: #1a8a5a;
+  --status-al-dia-bg: #e5f5ee;
+  --status-proxima: #b5750a;
+  --status-proxima-bg: #fdf1dc;
+  --status-vence-hoy: #c2410c;
+  --status-vence-hoy-bg: #fee9db;
+  --status-vencida: #c0271f;
+  --status-vencida-bg: #fbe6e4;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-dark: var(--brand-orange-dark);
+  --color-brand-orange-light: var(--brand-orange-light);
+  --color-brand-brown: var(--brand-brown);
+  --color-brand-brown-soft: var(--brand-brown-soft);
+  --color-brand-border: var(--brand-border);
+  --color-brand-surface: var(--brand-surface);
+  --color-status-al-dia: var(--status-al-dia);
+  --color-status-al-dia-bg: var(--status-al-dia-bg);
+  --color-status-proxima: var(--status-proxima);
+  --color-status-proxima-bg: var(--status-proxima-bg);
+  --color-status-vence-hoy: var(--status-vence-hoy);
+  --color-status-vence-hoy-bg: var(--status-vence-hoy-bg);
+  --color-status-vencida: var(--status-vencida);
+  --color-status-vencida-bg: var(--status-vencida-bg);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+::selection {
+  background: var(--brand-orange-light);
+  color: var(--brand-brown);
+}
