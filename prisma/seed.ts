@@ -1,11 +1,13 @@
+import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaNeon } from "@prisma/adapter-neon";
+import { neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
 import bcrypt from "bcryptjs";
 import { addDays } from "date-fns";
 
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL ?? "file:./dev.db",
-});
+neonConfig.webSocketConstructor = ws;
+const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL });
 const db = new PrismaClient({ adapter });
 
 async function main() {
@@ -31,8 +33,8 @@ async function main() {
     create: { id: "singleton" },
   });
 
-  const adminEmail = "admin@univerzoo.com";
-  const adminPassword = "Univerzoo2026!";
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || "admin@univerzoo.com";
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD || "Univerzoo2026!";
   const passwordHash = await bcrypt.hash(adminPassword, 12);
   await db.user.upsert({
     where: { email: adminEmail },
@@ -129,54 +131,57 @@ async function main() {
     });
   }
 
-  const owner = await db.owner.upsert({
-    where: { id: "seed-owner-juan" },
-    update: {},
-    create: {
-      id: "seed-owner-juan",
-      firstName: "Juan",
-      lastName: "Pérez",
-      whatsapp: "+595981123456",
-      phone: "+595981123456",
-      email: "juan.perez@example.com",
-      city: "Asunción",
-    },
-  });
-
-  const pet = await db.pet.upsert({
-    where: { id: "seed-pet-luna" },
-    update: {},
-    create: {
-      id: "seed-pet-luna",
-      ownerId: owner.id,
-      name: "Luna",
-      speciesId: species.get("Perro"),
-      breed: "Mestiza",
-      sex: "HEMBRA",
-      fileNumber: "F-0001",
-    },
-  });
-
-  const today = new Date();
-  const demoVaccinations = [
-    { id: "seed-vacc-1", offset: 45 },
-    { id: "seed-vacc-2", offset: 20 },
-    { id: "seed-vacc-3", offset: 0 },
-    { id: "seed-vacc-4", offset: -10 },
-  ];
-  for (const v of demoVaccinations) {
-    await db.vaccination.upsert({
-      where: { id: v.id },
+  if (process.env.SEED_DEMO_DATA === "true") {
+    const owner = await db.owner.upsert({
+      where: { id: "seed-owner-juan" },
       update: {},
       create: {
-        id: v.id,
-        petId: pet.id,
-        vaccineTypeId: vaccineTypes.get("Antirrábica")!,
-        appliedDate: addDays(today, v.offset - 365),
-        nextDate: addDays(today, v.offset),
-        veterinarian: "Dra. Gómez",
+        id: "seed-owner-juan",
+        firstName: "Juan",
+        lastName: "Pérez",
+        whatsapp: "+595981123456",
+        phone: "+595981123456",
+        email: "juan.perez@example.com",
+        city: "Asunción",
       },
     });
+
+    const pet = await db.pet.upsert({
+      where: { id: "seed-pet-luna" },
+      update: {},
+      create: {
+        id: "seed-pet-luna",
+        ownerId: owner.id,
+        name: "Luna",
+        speciesId: species.get("Perro"),
+        breed: "Mestiza",
+        sex: "HEMBRA",
+        fileNumber: "F-0001",
+      },
+    });
+
+    const today = new Date();
+    const demoVaccinations = [
+      { id: "seed-vacc-1", offset: 45 },
+      { id: "seed-vacc-2", offset: 20 },
+      { id: "seed-vacc-3", offset: 0 },
+      { id: "seed-vacc-4", offset: -10 },
+    ];
+    for (const v of demoVaccinations) {
+      await db.vaccination.upsert({
+        where: { id: v.id },
+        update: {},
+        create: {
+          id: v.id,
+          petId: pet.id,
+          vaccineTypeId: vaccineTypes.get("Antirrábica")!,
+          appliedDate: addDays(today, v.offset - 365),
+          nextDate: addDays(today, v.offset),
+          veterinarian: "Dra. Gómez",
+        },
+      });
+    }
+    console.log("Datos de demostración creados (SEED_DEMO_DATA=true).");
   }
 
   console.log("Seed completo.");

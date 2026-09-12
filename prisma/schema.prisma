@@ -1,5 +1,5 @@
 // Prisma schema — Sistema de Recordatorios de Vacunación (UNIVERZOO)
-// Dev datasource: SQLite (zero setup). Swap provider/url to "postgresql" for production.
+// Datasource: PostgreSQL (Neon, vía Vercel).
 
 generator client {
   provider = "prisma-client"
@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 enum Role {

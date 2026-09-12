@@ -12,11 +12,13 @@ Decisiones tomadas y por qué:
   framework full-stack (frontend + backend vía Server Actions y Route Handlers)
   reduce la superficie a mantener para un equipo chico, sin sacrificar
   escalabilidad (se puede desplegar en cualquier host Node.js o Docker).
-- **Prisma ORM 7 + SQLite en desarrollo.** SQLite no requiere instalar un
-  servidor de base de datos para levantar el proyecto. Para producción, basta
-  cambiar el `provider` del datasource a `postgresql` y el adapter en
-  `src/lib/db.ts` (de `@prisma/adapter-better-sqlite3` a
-  `@prisma/adapter-pg`), sin tocar el resto del código.
+- **Prisma ORM 7 + PostgreSQL (Neon, vía Vercel).** Conexión por WebSocket
+  (`@prisma/adapter-neon` + `ws`, configurado en `src/lib/db.ts`) para poder
+  usar transacciones — la variante HTTP del driver de Neon no las soporta y
+  algunas operaciones de Prisma (como `upsert`) las requieren internamente.
+  El CLI de Prisma (migraciones) usa la conexión directa
+  (`DATABASE_URL_UNPOOLED`) en vez de la pooled, porque las operaciones de
+  esquema no son compatibles con el pooler (pgbouncer).
 - **Autenticación propia (bcrypt + JWT en cookie httpOnly), sin librerías de
   terceros para auth.** Next.js 16 es muy reciente; se evitó `next-auth`
   (todavía en beta) para no depender de una librería que podría no estar
@@ -43,15 +45,22 @@ Decisiones tomadas y por qué:
 
 ```bash
 npm install
-npm run db:migrate   # crea prisma/migrations y dev.db (SQLite)
-npm run db:seed       # usuario admin + catálogo de vacunas + datos de ejemplo
+npm run db:migrate   # aplica prisma/migrations contra DATABASE_URL_UNPOOLED
+npm run db:seed      # usuario admin + catálogo de vacunas + plantillas
 npm run dev
 ```
 
-Usuario de prueba creado por el seed:
+Por defecto el seed crea el usuario `admin@univerzoo.com` / `Univerzoo2026!`
+(cambiala apenas entres). Podés fijar tus propias credenciales iniciales con
+`SEED_ADMIN_EMAIL` y `SEED_ADMIN_PASSWORD`. Para incluir además datos de
+ejemplo (propietario/mascota ficticios, solo útil en desarrollo local), corré
+el seed con `SEED_DEMO_DATA=true`.
 
-- Email: `admin@univerzoo.com`
-- Contraseña: `Univerzoo2026!`
+### Producción (Vercel + Neon)
+
+El proyecto está desplegado en Vercel, con Postgres provisto por la
+integración Neon del propio dashboard de Vercel (Storage → Create Database).
+Pasos completos en [`DEPLOY.md`](./DEPLOY.md).
 
 **Cambiar esta contraseña / crear usuarios reales antes de usar en producción**
 desde `Usuarios` (solo Administrador).
@@ -126,9 +135,8 @@ src/proxy.ts               Protección de rutas (reemplaza a middleware.ts en Ne
 
 ## Notas para producción
 
-- Cambiar `AUTH_SECRET` y la contraseña del usuario admin.
-- Migrar de SQLite a PostgreSQL (cambiar `provider` en `prisma/schema.prisma`
-  y el adapter en `src/lib/db.ts`).
-- Configurar backups periódicos de la base de datos.
+- Cambiar la contraseña del usuario admin apenas entres por primera vez.
+- Neon (plan gratuito) hace backups/point-in-time recovery automáticos por
+  varios días; para retención más larga, considerar un plan pago.
 - Dar de alta las plantillas de WhatsApp en Meta Business Manager antes de
   activar el motor de recordatorios en producción.
