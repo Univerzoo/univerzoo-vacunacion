@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Input, Label, Textarea, Select, Button } from "@/components/ui/primitives";
+import { toDateInputValue } from "@/lib/dates";
 import type { FormState } from "@/lib/validation";
 
 type Action = (prevState: FormState, formData: FormData) => Promise<FormState>;
@@ -11,11 +12,23 @@ export function VaccinationForm({
   pets,
   vaccineTypes,
   fixedPet,
+  defaultValues,
+  submitLabel = "Registrar vacunación",
 }: {
   action: Action;
   pets?: { id: string; name: string; ownerName: string }[];
   vaccineTypes: { id: string; name: string }[];
   fixedPet?: { id: string; label: string };
+  defaultValues?: {
+    vaccineTypeId: string;
+    commercialName: string | null;
+    appliedDate: Date;
+    nextDate: Date;
+    batchNumber: string | null;
+    veterinarian: string | null;
+    notes: string | null;
+  };
+  submitLabel?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
   const errors = state.fieldErrors ?? {};
@@ -48,7 +61,7 @@ export function VaccinationForm({
 
       <div>
         <Label htmlFor="vaccineTypeId">Vacuna *</Label>
-        <Select id="vaccineTypeId" name="vaccineTypeId" required defaultValue="">
+        <Select id="vaccineTypeId" name="vaccineTypeId" required defaultValue={defaultValues?.vaccineTypeId ?? ""}>
           <option value="" disabled>
             Seleccioná una vacuna
           </option>
@@ -62,36 +75,48 @@ export function VaccinationForm({
       </div>
       <div>
         <Label htmlFor="commercialName">Nombre comercial</Label>
-        <Input id="commercialName" name="commercialName" />
+        <Input id="commercialName" name="commercialName" defaultValue={defaultValues?.commercialName ?? ""} />
       </div>
       <div>
         <Label htmlFor="appliedDate">Fecha de aplicación *</Label>
-        <Input id="appliedDate" name="appliedDate" type="date" required defaultValue={today} />
+        <Input
+          id="appliedDate"
+          name="appliedDate"
+          type="date"
+          required
+          defaultValue={defaultValues ? toDateInputValue(defaultValues.appliedDate) : today}
+        />
         {errors.appliedDate && <p className="text-xs text-status-vencida mt-1">{errors.appliedDate}</p>}
       </div>
       <div>
         <Label htmlFor="nextDate">Próxima fecha de vacunación * (manual)</Label>
-        <Input id="nextDate" name="nextDate" type="date" required />
+        <Input
+          id="nextDate"
+          name="nextDate"
+          type="date"
+          required
+          defaultValue={defaultValues ? toDateInputValue(defaultValues.nextDate) : ""}
+        />
         {errors.nextDate && <p className="text-xs text-status-vencida mt-1">{errors.nextDate}</p>}
       </div>
       <div>
         <Label htmlFor="batchNumber">Número de lote</Label>
-        <Input id="batchNumber" name="batchNumber" />
+        <Input id="batchNumber" name="batchNumber" defaultValue={defaultValues?.batchNumber ?? ""} />
       </div>
       <div>
         <Label htmlFor="veterinarian">Veterinario</Label>
-        <Input id="veterinarian" name="veterinarian" />
+        <Input id="veterinarian" name="veterinarian" defaultValue={defaultValues?.veterinarian ?? ""} />
       </div>
       <div className="md:col-span-2">
         <Label htmlFor="notes">Observaciones</Label>
-        <Textarea id="notes" name="notes" rows={3} />
+        <Textarea id="notes" name="notes" rows={3} defaultValue={defaultValues?.notes ?? ""} />
       </div>
 
       {state.error && <p className="md:col-span-2 text-sm text-status-vencida">{state.error}</p>}
 
       <div className="md:col-span-2 flex justify-end">
         <Button type="submit" disabled={pending}>
-          {pending ? "Guardando..." : "Registrar vacunación"}
+          {pending ? "Guardando..." : submitLabel}
         </Button>
       </div>
     </form>

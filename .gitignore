@@ -46,3 +46,9 @@ next-env.d.ts
 /dev.db
 /dev.db-journal
 
+
+# datos de migración (información real de pacientes, no versionar)
+import_plan.json
+excluded_report.json
+fichas_extraidas.json
+import-report*.json

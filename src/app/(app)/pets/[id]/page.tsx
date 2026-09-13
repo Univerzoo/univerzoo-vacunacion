@@ -112,14 +112,22 @@ export default async function PetDetailPage({ params }: PageProps<"/pets/[id]">)
                       </td>
                       <td className="py-2 pr-3">
                         {!v.cancelled && (
-                          <form action={cancelAction}>
-                            <button
-                              type="submit"
-                              className="text-status-vencida text-xs font-medium hover:underline"
+                          <div className="flex items-center gap-3">
+                            <Link
+                              href={`/vaccinations/${v.id}/edit`}
+                              className="text-brand-orange-dark text-xs font-medium hover:underline"
                             >
-                              Anular
-                            </button>
-                          </form>
+                              Editar
+                            </Link>
+                            <form action={cancelAction}>
+                              <button
+                                type="submit"
+                                className="text-status-vencida text-xs font-medium hover:underline"
+                              >
+                                Anular
+                              </button>
+                            </form>
+                          </div>
                         )}
                       </td>
                     </tr>

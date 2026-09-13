@@ -7,16 +7,20 @@ import { getReminderSettings } from "@/lib/settings";
 import { format } from "date-fns";
 import type { VaccinationStatus } from "@/lib/status";
 
+const PENDING_MARKER = "no registrada en la ficha original";
+
 export default async function VaccinationsPage({ searchParams }: PageProps<"/vaccinations">) {
   const params = await searchParams;
   const statusFilter = typeof params.status === "string" ? (params.status as VaccinationStatus) : "";
+  const pendingOnly = params.pending === "1";
 
   const [reminderSettings, vaccinations] = await Promise.all([
     getReminderSettings(),
     db.vaccination.findMany({
+      where: pendingOnly ? { notes: { contains: PENDING_MARKER } } : undefined,
       include: { pet: { include: { owner: true } }, vaccineType: true },
       orderBy: { nextDate: "asc" },
-      take: 300,
+      take: 1000,
     }),
   ]);
 
@@ -34,7 +38,7 @@ export default async function VaccinationsPage({ searchParams }: PageProps<"/vac
       />
 
       <Card className="mb-4">
-        <form className="flex gap-2 items-end">
+        <form className="flex gap-2 items-end flex-wrap">
           <div className="w-56">
             <Select name="status" defaultValue={statusFilter}>
               <option value="">Todos los estados</option>
@@ -45,6 +49,17 @@ export default async function VaccinationsPage({ searchParams }: PageProps<"/vac
             </Select>
           </div>
         </form>
+        <div className="mt-3">
+          {pendingOnly ? (
+            <LinkButton href="/vaccinations" variant="ghost">
+              ← Ver todas
+            </LinkButton>
+          ) : (
+            <LinkButton href="/vaccinations?pending=1" variant="secondary">
+              Ver solo pendientes de fecha real (migración)
+            </LinkButton>
+          )}
+        </div>
       </Card>
 
       <Card className="overflow-x-auto">

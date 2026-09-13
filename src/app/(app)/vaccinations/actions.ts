@@ -60,6 +60,46 @@ export async function createVaccinationAction(
   redirect(`/pets/${d.petId}`);
 }
 
+export async function updateVaccinationAction(
+  id: string,
+  petId: string,
+  _prevState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const session = await requireUser();
+  const parsed = vaccinationSchema.safeParse(readInput(formData));
+  if (!parsed.success) {
+    return { fieldErrors: zodErrorToFieldErrors(parsed.error) };
+  }
+  const d = parsed.data;
+
+  await db.vaccination.update({
+    where: { id },
+    data: {
+      vaccineTypeId: d.vaccineTypeId,
+      commercialName: d.commercialName || null,
+      appliedDate: parseDateInput(d.appliedDate),
+      nextDate: parseDateInput(d.nextDate),
+      batchNumber: d.batchNumber || null,
+      veterinarian: d.veterinarian || null,
+      notes: d.notes || null,
+    },
+  });
+
+  await logAudit({
+    userId: session.sub,
+    action: "UPDATE",
+    entity: "Vaccination",
+    entityId: id,
+    details: { nextDate: d.nextDate },
+  });
+
+  revalidatePath(`/pets/${petId}`);
+  revalidatePath("/vaccinations");
+  revalidatePath("/dashboard");
+  redirect(`/pets/${petId}`);
+}
+
 export async function cancelVaccinationAction(id: string, petId: string) {
   const session = await requireUser();
   await db.vaccination.update({
