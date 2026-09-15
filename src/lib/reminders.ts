@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { daysUntil } from "@/lib/status";
-import { renderTemplate } from "@/lib/template";
+import { renderTemplate, buildWhatsAppTemplateParams } from "@/lib/template";
 import { sendWhatsAppTemplate } from "@/lib/whatsapp";
 import { getClinicSettings, getReminderSettings } from "@/lib/settings";
 import type { EtapaRecordatorio } from "@/generated/prisma/enums";
@@ -94,13 +94,17 @@ export async function runReminderEngine(
       continue;
     }
 
-    const result = await sendWhatsAppTemplate(owner.whatsapp, template.whatsappTemplateName, [
-      `${owner.firstName} ${owner.lastName}`,
-      vaccination.pet.name,
-      vaccination.vaccineType.name,
-      format(vaccination.nextDate, "dd/MM/yyyy"),
-      clinicSettings.name,
-    ]);
+    const result = await sendWhatsAppTemplate(
+      owner.whatsapp,
+      template.whatsappTemplateName,
+      buildWhatsAppTemplateParams({
+        ownerName: `${owner.firstName} ${owner.lastName}`,
+        petName: vaccination.pet.name,
+        vaccineName: vaccination.vaccineType.name,
+        nextDate: format(vaccination.nextDate, "dd/MM/yyyy"),
+        clinicName: clinicSettings.name,
+      })
+    );
 
     if (result.ok) {
       await db.message.update({

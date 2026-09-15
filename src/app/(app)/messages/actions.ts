@@ -5,7 +5,9 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { sendWhatsAppTemplate } from "@/lib/whatsapp";
-import { getReminderSettings } from "@/lib/settings";
+import { getClinicSettings, getReminderSettings } from "@/lib/settings";
+import { buildWhatsAppTemplateParams } from "@/lib/template";
+import { format } from "date-fns";
 
 export async function retryMessageAction(id: string) {
   const session = await requireUser();
@@ -18,11 +20,19 @@ export async function retryMessageAction(id: string) {
   });
   if (!message || message.status !== "ERROR" || !message.template) return;
 
-  const result = await sendWhatsAppTemplate(message.whatsappNumber, message.template.whatsappTemplateName, [
-    `${message.owner.firstName} ${message.owner.lastName}`,
-    message.pet.name,
-    message.vaccination.vaccineType.name,
-  ]);
+  const clinicSettings = await getClinicSettings();
+
+  const result = await sendWhatsAppTemplate(
+    message.whatsappNumber,
+    message.template.whatsappTemplateName,
+    buildWhatsAppTemplateParams({
+      ownerName: `${message.owner.firstName} ${message.owner.lastName}`,
+      petName: message.pet.name,
+      vaccineName: message.vaccination.vaccineType.name,
+      nextDate: format(message.vaccination.nextDate, "dd/MM/yyyy"),
+      clinicName: clinicSettings.name,
+    })
+  );
 
   await db.message.update({
     where: { id },
